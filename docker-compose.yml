@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  bot:
+    image: diary-bot:latest
+    build: .
+    container_name: diary-bot
+    command: python3 bot.py
+    volumes:
+      - ./:/app
+    env_file: .env
+    environment:
+      - TELEGRAM_BOT_TOKEN=${DIARY_BOT_TOKEN}
+    restart: always
+
+networks:
+  default:
+    name: bridge-nerwork
+    external: true
