@@ -1,9 +1,9 @@
-from telebot.async_telebot import AsyncTeleBot
+import telebot
 import datetime
 import os
 
 # Initialize the bot with the API token
-bot = AsyncTeleBot(os.environ['TELEGRAM_BOT_TOKEN'])
+bot = telebot.TeleBot(os.environ['TELEGRAM_BOT_TOKEN'])
 
 # Dictionary to store the diary entries for each user
 diaries = {}
@@ -11,12 +11,12 @@ diaries = {}
 
 # Function to handle the /start command
 @bot.message_handler(commands=['start'])
-async def start(message):
+def start(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
     # Send a greeting message to the user
-    await bot.send_message(chat_id, "Hello! Welcome to the Diary Bot. Type /help to see a list of available commands.")
+    bot.send_message(chat_id, "Hello! Welcome to the Diary Bot. Type /help to see a list of available commands.")
 
     # Initialize an empty diary for the user if they don't have one yet
     if chat_id not in diaries:
@@ -25,7 +25,7 @@ async def start(message):
 
 # Function to handle the /help command
 @bot.message_handler(commands=['help', 'h'])
-async def help(message):
+def help(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -33,7 +33,7 @@ async def help(message):
         diaries[chat_id] = []
 
     # Send a list of available commands to the user
-    await bot.send_message(chat_id, "Here is a list of available commands:\n"
+    bot.send_message(chat_id, "Here is a list of available commands:\n"
                               "/help - see a list of available commands\n"
                               "/add - add a new diary entry\n"
                               "/write - add text to an existing diary entry\n"
@@ -46,7 +46,7 @@ async def help(message):
 
 # Function to add a new diary entry
 @bot.message_handler(commands=['add', 'a'])
-async def add_entry(message):
+def add_entry(message):
     # Get the user's chat ID and the current date
     chat_id = message.chat.id
     date = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -55,19 +55,19 @@ async def add_entry(message):
         diaries[chat_id] = []
 
     # Ask the user for the name of the diary entry
-    await bot.send_message(chat_id, "Enter a name for the diary entry. Type 'cancel' to cancel the operation:")
-    await bot.register_next_step_handler(message, add_entry_confirm, date)
+    bot.send_message(chat_id, "Enter a name for the diary entry. Type 'cancel' to cancel the operation:")
+    bot.register_next_step_handler(message, add_entry_confirm, date)
 
 
 # Function to confirm the creation of a new diary entry
-async def add_entry_confirm(message, date):
+def add_entry_confirm(message, date):
     # Get the user's chat ID and the name of the diary entry
     chat_id = message.chat.id
     name = message.text
 
     # Cancel the operation if user wants to
     if name.lower() == 'cancel':
-        await bot.send_message(chat_id, "Ok. Operation canceled.")
+        bot.send_message(chat_id, "Ok. Operation canceled.")
     else:
         # Create a new diary entry with the given name and date
         diaries[chat_id].append({
@@ -77,12 +77,12 @@ async def add_entry_confirm(message, date):
         })
 
         # Send a confirmation message to the user
-        await bot.send_message(chat_id, "Diary entry '{}' created from {}.".format(name, date))
+        bot.send_message(chat_id, "Diary entry '{}' created from {}.".format(name, date))
 
 
 # Function to add text to an existing diary entry
 @bot.message_handler(commands=['write', 'w'])
-async def write_text(message):
+def write_text(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -94,15 +94,15 @@ async def write_text(message):
     for i, entry in enumerate(diaries[chat_id]):
         entries_text += "{}. {} - {}\n".format(i + 1, entry["date"], entry["name"])
 
-    await bot.send_message(chat_id, entries_text)
+    bot.send_message(chat_id, entries_text)
 
     # Ask the user which entry they want to add text to
-    await bot.send_message(chat_id, "Enter the number of the entry you want to add text to. Type 'cancel' to cancel the operation.")
+    bot.send_message(chat_id, "Enter the number of the entry you want to add text to. Type 'cancel' to cancel the operation.")
     # Pass the message and the date of the selected diary entry to the next function
-    await bot.register_next_step_handler(message, write_text_confirm)
+    bot.register_next_step_handler(message, write_text_confirm)
 
 
-async def write_text_confirm(message):
+def write_text_confirm(message):
     # Get the user's chat ID and the text of their message
     chat_id = message.chat.id
     text = message.text
@@ -118,37 +118,37 @@ async def write_text_confirm(message):
             entry = diaries[chat_id][entry_num]
 
             # Ask the user for the text to add to the entry
-            await bot.send_message(chat_id, "Enter the text you want to add to the entry. Type 'cancel' to cancel the operation.")
-            await bot.register_next_step_handler(message, write_text_save, entry_num)
+            bot.send_message(chat_id, "Enter the text you want to add to the entry. Type 'cancel' to cancel the operation.")
+            bot.register_next_step_handler(message, write_text_save, entry_num)
         else:
             # Send an error message if the entry number is invalid
-            await bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
+            bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
     else:
         if text.lower() == 'cancel':
-            await bot.send_message(chat_id, "Ok. Operation canceled.")
+            bot.send_message(chat_id, "Ok. Operation canceled.")
         else:
             # Send an error message if the message is not a valid number
-            await bot.send_message(chat_id, "Invalid input. Operation canceled.")
+            bot.send_message(chat_id, "Invalid input. Operation canceled.")
 
 
-async def write_text_save(message, entry_num):
+def write_text_save(message, entry_num):
     # Get the user's chat ID and the text of their message
     chat_id = message.chat.id
     text = message.text
 
     # Go back if user wants to
     if text.lower() == 'cancel':
-        await bot.send_message(chat_id, "Ok. Operation canceled.")
+        bot.send_message(chat_id, "Ok. Operation canceled.")
     else:
         # Add the text to diary
         diaries[chat_id][entry_num]["text"] += text + '\n'
 
-        await bot.send_message(chat_id, "The text added to selected diary entry.")
+        bot.send_message(chat_id, "The text added to selected diary entry.")
 
 
 # Function to delete an existing diary entry
 @bot.message_handler(commands=['delete', 'd'])
-async def delete_entry(message):
+def delete_entry(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -159,15 +159,15 @@ async def delete_entry(message):
     entries_text = "Diary entries:\n"
     for i, entry in enumerate(diaries[chat_id]):
         entries_text += "{}. {} - {}\n".format(i + 1, entry["date"], entry["name"])
-    await bot.send_message(chat_id, entries_text)
+    bot.send_message(chat_id, entries_text)
 
     # Ask the user which entry they want to delete
-    await bot.send_message(chat_id, "Enter the number of the entry you want to delete. Type 'cancel' to cancel the operation.")
-    await bot.register_next_step_handler(message, delete_entry_confirm)
+    bot.send_message(chat_id, "Enter the number of the entry you want to delete. Type 'cancel' to cancel the operation.")
+    bot.register_next_step_handler(message, delete_entry_confirm)
 
 
 # Function to confirm the deletion of an existing diary entry
-async def delete_entry_confirm(message):
+def delete_entry_confirm(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -181,23 +181,23 @@ async def delete_entry_confirm(message):
             name = diaries[chat_id][entry_num]["name"]
 
             # Ask the user for confirmation
-            await bot.send_message(chat_id,
+            bot.send_message(chat_id,
                              "Are you sure you want to delete diary entry '{}' from {}? Type 'yes' to confirm.".format(name,
                                                                                                                       date))
-            await bot.register_next_step_handler(message, delete_entry_execute, entry_num)
+            bot.register_next_step_handler(message, delete_entry_execute, entry_num)
         else:
             # Send an error message if the entry number is invalid
-            await bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
+            bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
     else:
         if message.text.lower() == 'cancel':
-            await bot.send_message(chat_id, "Ok. Operation canceled.")
+            bot.send_message(chat_id, "Ok. Operation canceled.")
         else:
             # Send an error message if the message is not a valid number
-            await bot.send_message(chat_id, "Invalid input. Operation canceled.")
+            bot.send_message(chat_id, "Invalid input. Operation canceled.")
 
 
 # Function to execute the deletion of an existing diary entry
-async def delete_entry_execute(message, entry_num):
+def delete_entry_execute(message, entry_num):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -205,15 +205,15 @@ async def delete_entry_execute(message, entry_num):
     if message.text.lower() == "yes":
         # Delete the diary entry
         del diaries[chat_id][entry_num]
-        await bot.send_message(chat_id, "Diary entry deleted.")
+        bot.send_message(chat_id, "Diary entry deleted.")
     else:
         # Send a message indicating that the deletion was cancelled
-        await bot.send_message(chat_id, "Deletion cancelled.")
+        bot.send_message(chat_id, "Deletion cancelled.")
 
 
 # Function to read existing diary entries
 @bot.message_handler(commands=['read', 'r'])
-async def read_entry(message):
+def read_entry(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -224,15 +224,15 @@ async def read_entry(message):
     entries_text = "Diary entries:\n"
     for i, entry in enumerate(diaries[chat_id]):
         entries_text += "{}. {} - {}\n".format(i + 1, entry["date"], entry["name"])
-    await bot.send_message(chat_id, entries_text)
+    bot.send_message(chat_id, entries_text)
 
     # Ask the user which entry they want to read
-    await bot.send_message(chat_id, "Enter the number of the entry you want to read. Type 'cancel' to cancel the operation.")
-    await bot.register_next_step_handler(message, read_entry_confirm)
+    bot.send_message(chat_id, "Enter the number of the entry you want to read. Type 'cancel' to cancel the operation.")
+    bot.register_next_step_handler(message, read_entry_confirm)
 
 
 # Function to confirm reading
-async def read_entry_confirm(message):
+def read_entry_confirm(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -246,21 +246,21 @@ async def read_entry_confirm(message):
 
             # Show the text
             entry_text = "The text of selected diary entry:\n" + diaries[chat_id][entry_num]["text"]
-            await bot.send_message(chat_id, entry_text)
+            bot.send_message(chat_id, entry_text)
         else:
             # Send an error message if the entry number is invalid
-            await bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
+            bot.send_message(chat_id, "Entry number is not in range. Operation canceled.")
     else:
         if message.text.lower() == 'cancel':
-            await bot.send_message(chat_id, "Ok. Operation canceled.")
+            bot.send_message(chat_id, "Ok. Operation canceled.")
         else:
             # Send an error message if the message is not a valid number
-            await bot.send_message(chat_id, "Invalid input. Operation canceled.")
+            bot.send_message(chat_id, "Invalid input. Operation canceled.")
 
 
 # Function to show existing diary entries
 @bot.message_handler(commands=['show', 's'])
-async def show_entries(message):
+def show_entries(message):
     # Get the user's chat ID
     chat_id = message.chat.id
 
@@ -271,9 +271,8 @@ async def show_entries(message):
     entries_text = "Diary entries:\n"
     for i, entry in enumerate(diaries[chat_id]):
         entries_text += "{}. {} - {}\n".format(i + 1, entry["date"], entry["name"])
-    await bot.send_message(chat_id, entries_text)
+    bot.send_message(chat_id, entries_text)
 
 
 # Start the bot
-import asyncio
-asyncio.run(bot.polling())
+bot.polling()
